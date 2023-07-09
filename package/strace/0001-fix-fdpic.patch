@@ -1,0 +1,41 @@
+diff -bur strace-6.1/src/defs.h strace-6.1.mod/src/defs.h
+--- strace-6.1/src/defs.h	2022-08-09 01:34:31.000000000 -0700
++++ strace-6.1.mod/src/defs.h	2023-07-08 22:31:32.462766055 -0700
+@@ -24,6 +24,7 @@
+ # include <unistd.h>
+ # include <stdlib.h>
+ # include <stdio.h>
++#include <linux/limits.h>
+ /* Open-coding isprint(ch) et al proved more efficient than calling
+  * generalized libc interface. We don't *want* to do non-ASCII anyway.
+  */
+@@ -44,6 +45,8 @@
+ # include "sysent.h"
+ # include "xmalloc.h"
+ 
++# define IOV_MAX 1024
++
+ # ifndef HAVE_STRERROR
+ const char *strerror(int);
+ # endif
+diff -bur strace-6.1/src/stage_output.c strace-6.1.mod/src/stage_output.c
+--- strace-6.1/src/stage_output.c	2021-02-16 00:00:00.000000000 -0800
++++ strace-6.1.mod/src/stage_output.c	2023-07-08 22:33:11.819057827 -0700
+@@ -26,7 +26,7 @@
+ {
+ 	FILE *fp = NULL;
+ 
+-#if HAVE_OPEN_MEMSTREAM
++#ifdef HAVE_OPEN_MEMSTREAM
+ 	tcp->staged_output_data = xmalloc(sizeof(*tcp->staged_output_data));
+ 	fp = open_memstream(&tcp->staged_output_data->memfptr,
+ 			    &tcp->staged_output_data->memfloc);
+@@ -49,7 +49,7 @@
+ void
+ strace_close_memstream(struct tcb *tcp, bool publish)
+ {
+-#if HAVE_OPEN_MEMSTREAM
++#ifdef HAVE_OPEN_MEMSTREAM
+ 	if (!tcp->staged_output_data) {
+ 		debug_msg("memstream already closed");
+ 		return;
