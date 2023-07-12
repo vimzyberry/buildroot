@@ -105,7 +105,7 @@ endif
 # instruction can only access literals in 256 KBytes range.
 #
 ifeq ($(BR2_xtensa),y)
-TARGET_ABI += -mfdpic -mauto-litpools -mforce-l32
+TARGET_ABI += -mfdpic -mauto-litpools
 endif
 
 STAGING_SUBDIR = $(GNU_TARGET_NAME)/sysroot
