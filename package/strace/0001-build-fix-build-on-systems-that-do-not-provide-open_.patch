@@ -1,0 +1,37 @@
+From 6387801953c6d04fac0fcc86db23507774a706c8 Mon Sep 17 00:00:00 2001
+From: "Dmitry V. Levin" <ldv@strace.io>
+Date: Wed, 10 May 2023 08:00:00 +0000
+Subject: [PATCH] build: fix build on systems that do not provide
+ open_memstream
+
+* src/stage_output.c (strace_open_memstream, strace_close_memstream):
+Fix HAVE_OPEN_MEMSTREAM check.
+---
+ src/stage_output.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/stage_output.c b/src/stage_output.c
+index 8108777623ee..8f4016354930 100644
+--- a/src/stage_output.c
++++ b/src/stage_output.c
+@@ -26,7 +26,7 @@ strace_open_memstream(struct tcb *tcp)
+ {
+ 	FILE *fp = NULL;
+ 
+-#if HAVE_OPEN_MEMSTREAM
++#ifdef HAVE_OPEN_MEMSTREAM
+ 	tcp->staged_output_data = xmalloc(sizeof(*tcp->staged_output_data));
+ 	fp = open_memstream(&tcp->staged_output_data->memfptr,
+ 			    &tcp->staged_output_data->memfloc);
+@@ -49,7 +49,7 @@ strace_open_memstream(struct tcb *tcp)
+ void
+ strace_close_memstream(struct tcb *tcp, bool publish)
+ {
+-#if HAVE_OPEN_MEMSTREAM
++#ifdef HAVE_OPEN_MEMSTREAM
+ 	if (!tcp->staged_output_data) {
+ 		debug_msg("memstream already closed");
+ 		return;
+-- 
+2.30.2
+
