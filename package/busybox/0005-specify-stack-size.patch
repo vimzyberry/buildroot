@@ -1,0 +1,11 @@
+--- busybox-1.36.0/scripts/trylink	2023-01-03 06:17:01.000000000 -0800
++++ busybox-1.36.0-mod/scripts/trylink	2023-07-19 00:59:04.745355495 -0700
+@@ -111,7 +111,7 @@
+ # See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
+ # Note that glibc is unsuitable for static linking anyway.
+ # We are removing -Wl,--gc-sections from link command line.
+-GC_SECTIONS="-Wl,--gc-sections"
++GC_SECTIONS="-Wl,--gc-sections -Wl,-z,stack-size=16384"
+ if (. ./.config && test x"$CONFIG_STATIC" = x"y") then
+     if check_libc_is_glibc; then
+ 	echo "Static linking against glibc, can't use --gc-sections"
