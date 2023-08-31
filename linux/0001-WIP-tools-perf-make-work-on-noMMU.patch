@@ -1,0 +1,311 @@
+From 8cdbdca47867f5976b41599e4183a109748669fe Mon Sep 17 00:00:00 2001
+From: Max Filippov <jcmvbkbc@gmail.com>
+Date: Wed, 26 Jul 2023 06:17:20 -0700
+Subject: [PATCH] WIP: tools/perf: make work on noMMU
+
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+---
+ tools/lib/perf/tests/test-evlist.c    | 2 +-
+ tools/lib/subcmd/run-command.c        | 2 +-
+ tools/perf/arch/x86/tests/bp-modify.c | 2 +-
+ tools/perf/arch/x86/tests/intel-cqm.c | 2 +-
+ tools/perf/bench/inject-buildid.c     | 2 +-
+ tools/perf/bench/numa.c               | 2 +-
+ tools/perf/bench/sched-messaging.c    | 4 ++--
+ tools/perf/bench/sched-pipe.c         | 2 +-
+ tools/perf/bench/syscall.c            | 6 +++---
+ tools/perf/builtin-daemon.c           | 4 ++--
+ tools/perf/builtin-script.c           | 2 +-
+ tools/perf/tests/builtin-test.c       | 2 +-
+ tools/perf/tests/sigtrap.c            | 8 ++++----
+ tools/perf/tests/workloads/sqrtloop.c | 2 +-
+ tools/perf/util/evlist.c              | 6 +++---
+ tools/perf/util/evsel.c               | 2 +-
+ 16 files changed, 25 insertions(+), 25 deletions(-)
+
+diff --git a/tools/lib/perf/tests/test-evlist.c b/tools/lib/perf/tests/test-evlist.c
+index ed616fc19b4f..f31a8ecfe1e4 100644
+--- a/tools/lib/perf/tests/test-evlist.c
++++ b/tools/lib/perf/tests/test-evlist.c
+@@ -244,7 +244,7 @@ static int test_mmap_thread(void)
+ 
+ 	fflush(NULL);
+ 
+-	pid = fork();
++	pid = vfork();
+ 	if (!pid) {
+ 		int i;
+ 		char bf;
+diff --git a/tools/lib/subcmd/run-command.c b/tools/lib/subcmd/run-command.c
+index 5cdac2162532..13c250eeda18 100644
+--- a/tools/lib/subcmd/run-command.c
++++ b/tools/lib/subcmd/run-command.c
+@@ -78,7 +78,7 @@ int start_command(struct child_process *cmd)
+ 	}
+ 
+ 	fflush(NULL);
+-	cmd->pid = fork();
++	cmd->pid = vfork();
+ 	if (!cmd->pid) {
+ 		if (cmd->no_stdin)
+ 			dup_devnull(0);
+diff --git a/tools/perf/arch/x86/tests/bp-modify.c b/tools/perf/arch/x86/tests/bp-modify.c
+index 0924ccd9e36d..59dc39c99efc 100644
+--- a/tools/perf/arch/x86/tests/bp-modify.c
++++ b/tools/perf/arch/x86/tests/bp-modify.c
+@@ -29,7 +29,7 @@ static noinline int bp_2(void)
+ 
+ static int spawn_child(void)
+ {
+-	int child = fork();
++	int child = vfork();
+ 
+ 	if (child == 0) {
+ 		/*
+diff --git a/tools/perf/arch/x86/tests/intel-cqm.c b/tools/perf/arch/x86/tests/intel-cqm.c
+index 360a082fc928..9cabde62195d 100644
+--- a/tools/perf/arch/x86/tests/intel-cqm.c
++++ b/tools/perf/arch/x86/tests/intel-cqm.c
+@@ -17,7 +17,7 @@ static pid_t spawn(void)
+ {
+ 	pid_t pid;
+ 
+-	pid = fork();
++	pid = vfork();
+ 	if (pid)
+ 		return pid;
+ 
+diff --git a/tools/perf/bench/inject-buildid.c b/tools/perf/bench/inject-buildid.c
+index 49331743c743..46785f09c449 100644
+--- a/tools/perf/bench/inject-buildid.c
++++ b/tools/perf/bench/inject-buildid.c
+@@ -288,7 +288,7 @@ static int setup_injection(struct bench_data *data, bool build_id_all)
+ 	if (pipe(data->output_pipe) < 0)
+ 		return -1;
+ 
+-	data->pid = fork();
++	data->pid = vfork();
+ 	if (data->pid < 0)
+ 		return -1;
+ 
+diff --git a/tools/perf/bench/numa.c b/tools/perf/bench/numa.c
+index 1fbd7c947abc..6e1883b5b28a 100644
+--- a/tools/perf/bench/numa.c
++++ b/tools/perf/bench/numa.c
+@@ -1587,7 +1587,7 @@ static int __bench_numa(const char *name)
+ 	gettimeofday(&start, NULL);
+ 
+ 	for (i = 0; i < g->p.nr_proc; i++) {
+-		pid = fork();
++		pid = vfork();
+ 		dprintf(" # process %2d: PID %d\n", i, pid);
+ 
+ 		BUG_ON(pid < 0);
+diff --git a/tools/perf/bench/sched-messaging.c b/tools/perf/bench/sched-messaging.c
+index fa1f8f998814..4101d3b2337a 100644
+--- a/tools/perf/bench/sched-messaging.c
++++ b/tools/perf/bench/sched-messaging.c
+@@ -148,9 +148,9 @@ static pthread_t create_worker(void *ctx, void *(*func)(void *))
+ 	if (!thread_mode) {
+ 		/* process mode */
+ 		/* Fork the receiver. */
+-		switch (fork()) {
++		switch (vfork()) {
+ 		case -1:
+-			err(EXIT_FAILURE, "fork()");
++			err(EXIT_FAILURE, "vfork()");
+ 			break;
+ 		case 0:
+ 			(*func) (ctx);
+diff --git a/tools/perf/bench/sched-pipe.c b/tools/perf/bench/sched-pipe.c
+index a960e7a93aec..a2c7f9f4c76d 100644
+--- a/tools/perf/bench/sched-pipe.c
++++ b/tools/perf/bench/sched-pipe.c
+@@ -130,7 +130,7 @@ int bench_sched_pipe(int argc, const char **argv)
+ 		}
+ 
+ 	} else {
+-		pid = fork();
++		pid = vfork();
+ 		assert(pid >= 0);
+ 
+ 		if (!pid) {
+diff --git a/tools/perf/bench/syscall.c b/tools/perf/bench/syscall.c
+index ea4dfc07cbd6..482648dc2d13 100644
+--- a/tools/perf/bench/syscall.c
++++ b/tools/perf/bench/syscall.c
+@@ -37,7 +37,7 @@ static const char * const bench_syscall_usage[] = {
+ 
+ static void test_fork(void)
+ {
+-	pid_t pid = fork();
++	pid_t pid = vfork();
+ 
+ 	if (pid < 0) {
+ 		fprintf(stderr, "fork failed\n");
+@@ -56,7 +56,7 @@ static void test_execve(void)
+ {
+ 	const char *pathname = "/bin/true";
+ 	char *const argv[] = { (char *)pathname, NULL };
+-	pid_t pid = fork();
++	pid_t pid = vfork();
+ 
+ 	if (pid < 0) {
+ 		fprintf(stderr, "fork failed\n");
+@@ -120,7 +120,7 @@ static int bench_syscall_common(int argc, const char **argv, int syscall)
+ 		name = "getpgid()";
+ 		break;
+ 	case __NR_fork:
+-		name = "fork()";
++		name = "vfork()";
+ 		break;
+ 	case __NR_execve:
+ 		name = "execve()";
+diff --git a/tools/perf/builtin-daemon.c b/tools/perf/builtin-daemon.c
+index 83954af36753..f6d7ba7682c3 100644
+--- a/tools/perf/builtin-daemon.c
++++ b/tools/perf/builtin-daemon.c
+@@ -337,7 +337,7 @@ static int daemon_session__run(struct daemon_session *session,
+ 
+ 	session->start = time(NULL);
+ 
+-	session->pid = fork();
++	session->pid = vfork();
+ 	if (session->pid < 0)
+ 		return -1;
+ 	if (session->pid > 0) {
+@@ -1181,7 +1181,7 @@ static int go_background(struct daemon *daemon)
+ {
+ 	int pid, fd;
+ 
+-	pid = fork();
++	pid = vfork();
+ 	if (pid < 0)
+ 		return -1;
+ 
+diff --git a/tools/perf/builtin-script.c b/tools/perf/builtin-script.c
+index 200b3e7ea8da..5ace68ad8f54 100644
+--- a/tools/perf/builtin-script.c
++++ b/tools/perf/builtin-script.c
+@@ -4106,7 +4106,7 @@ int cmd_script(int argc, const char **argv)
+ 			return -1;
+ 		}
+ 
+-		pid = fork();
++		pid = vfork();
+ 		if (pid < 0) {
+ 			perror("failed to fork");
+ 			return -1;
+diff --git a/tools/perf/tests/builtin-test.c b/tools/perf/tests/builtin-test.c
+index 1f6557ce3b0a..d08fa27a0c71 100644
+--- a/tools/perf/tests/builtin-test.c
++++ b/tools/perf/tests/builtin-test.c
+@@ -203,7 +203,7 @@ static bool perf_test__matches(const char *desc, int curr, int argc, const char
+ 
+ static int run_test(struct test_suite *test, int subtest)
+ {
+-	int status, err = -1, child = dont_fork ? 0 : fork();
++	int status, err = -1, child = dont_fork ? 0 : vfork();
+ 	char sbuf[STRERR_BUFSIZE];
+ 
+ 	if (child < 0) {
+diff --git a/tools/perf/tests/sigtrap.c b/tools/perf/tests/sigtrap.c
+index 1de7478ec189..e51a24878049 100644
+--- a/tools/perf/tests/sigtrap.c
++++ b/tools/perf/tests/sigtrap.c
+@@ -125,7 +125,7 @@ static void *test_thread(void *arg)
+ 	pid_t tid = syscall(SYS_gettid);
+ 	int i;
+ 
+-	pthread_barrier_wait(barrier);
++	//pthread_barrier_...barrier);
+ 
+ 	__atomic_fetch_add(&ctx.tids_want_signal, tid, __ATOMIC_RELAXED);
+ 	for (i = 0; i < ctx.iterate_on - 1; i++)
+@@ -138,7 +138,7 @@ static int run_test_threads(pthread_t *threads, pthread_barrier_t *barrier)
+ {
+ 	int i;
+ 
+-	pthread_barrier_wait(barrier);
++	//pthread_barrier_...barrier);
+ 	for (i = 0; i < NUM_THREADS; i++)
+ 		TEST_ASSERT_EQUAL("pthread_join() failed", pthread_join(threads[i], NULL), 0);
+ 
+@@ -184,7 +184,7 @@ static int test__sigtrap(struct test_suite *test __maybe_unused, int subtest __m
+ 		return TEST_SKIP;
+ 	}
+ 
+-	pthread_barrier_init(&barrier, NULL, NUM_THREADS + 1);
++	//pthread_barrier_...&barrier, NULL, NUM_THREADS + 1);
+ 
+ 	action.sa_flags = SA_SIGINFO | SA_NODEFER;
+ 	action.sa_sigaction = sigtrap_handler;
+@@ -220,7 +220,7 @@ static int test__sigtrap(struct test_suite *test __maybe_unused, int subtest __m
+ out_restore_sigaction:
+ 	sigaction(SIGTRAP, &oldact, NULL);
+ out:
+-	pthread_barrier_destroy(&barrier);
++	//pthread_barrier_...&barrier);
+ 	return ret;
+ }
+ 
+diff --git a/tools/perf/tests/workloads/sqrtloop.c b/tools/perf/tests/workloads/sqrtloop.c
+index ccc94c6a6676..6a076b370a04 100644
+--- a/tools/perf/tests/workloads/sqrtloop.c
++++ b/tools/perf/tests/workloads/sqrtloop.c
+@@ -31,7 +31,7 @@ static int sqrtloop(int argc, const char **argv)
+ 	if (argc > 0)
+ 		sec = atoi(argv[0]);
+ 
+-	switch (fork()) {
++	switch (vfork()) {
+ 	case 0:
+ 		return __sqrtloop(sec);
+ 	case -1:
+diff --git a/tools/perf/util/evlist.c b/tools/perf/util/evlist.c
+index 7ef43f72098e..7d7a44531f4a 100644
+--- a/tools/perf/util/evlist.c
++++ b/tools/perf/util/evlist.c
+@@ -1414,7 +1414,7 @@ int evlist__prepare_workload(struct evlist *evlist, struct target *target, const
+ 		goto out_close_ready_pipe;
+ 	}
+ 
+-	evlist->workload.pid = fork();
++	evlist->workload.pid = vfork();
+ 	if (evlist->workload.pid < 0) {
+ 		perror("failed to fork");
+ 		goto out_close_pipes;
+@@ -1447,7 +1447,7 @@ int evlist__prepare_workload(struct evlist *evlist, struct target *target, const
+ 		/*
+ 		 * Wait until the parent tells us to go.
+ 		 */
+-		ret = read(go_pipe[0], &bf, 1);
++		ret = 1;//read(go_pipe[0], &bf, 1);
+ 		/*
+ 		 * The parent will ask for the execvp() to be performed by
+ 		 * writing exactly one byte, in workload.cork_fd, usually via
+@@ -1526,7 +1526,7 @@ int evlist__start_workload(struct evlist *evlist)
+ 		/*
+ 		 * Remove the cork, let it rip!
+ 		 */
+-		ret = write(evlist->workload.cork_fd, &bf, 1);
++		ret = 1;//write(evlist->workload.cork_fd, &bf, 1);
+ 		if (ret < 0)
+ 			perror("unable to write to pipe");
+ 
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 762e2b2634a5..dc05160b1965 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -1306,7 +1306,7 @@ void evsel__config(struct evsel *evsel, struct record_opts *opts,
+ 	    !opts->target.initial_delay)
+ 		attr->enable_on_exec = 1;
+ 
+-	if (evsel->immediate) {
++	if (1 || evsel->immediate) {
+ 		attr->disabled = 0;
+ 		attr->enable_on_exec = 0;
+ 	}
+-- 
+2.30.2
+
