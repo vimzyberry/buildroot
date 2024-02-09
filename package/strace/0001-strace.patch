@@ -1,0 +1,11 @@
+--- strace-6.6/src/count-orig.c	2024-01-26 15:56:04.916800125 -0800
++++ strace-6.6/src/count.c	2024-01-26 15:56:18.028904916 -0800
+@@ -316,7 +316,7 @@
+ 
+ 
+ 	/* sort, calculate statistics */
+-	indices = xcalloc(sizeof(indices[0]), nsyscalls);
++	indices = xcalloc(nsyscalls, sizeof(indices[0]));
+ 	for (size_t i = 0; i < nsyscalls; ++i) {
+ 		indices[i] = i;
+ 		if (counts[i].calls == 0)
