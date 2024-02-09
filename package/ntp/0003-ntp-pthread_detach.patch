@@ -1,0 +1,14 @@
+--- ntp-4.2.8p17/sntp/m4/openldap-thread-check.m4.orig	2024-02-07 15:56:22.066642170 -0800
++++ ntp-4.2.8p17/sntp/m4/openldap-thread-check.m4	2024-02-07 15:57:14.695005307 -0800
+@@ -262,10 +262,7 @@
+ 				dnl save the flags
+ 				AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+ #include <pthread.h>
+-#ifndef NULL
+-#define NULL (void*)0
+-#endif
+-]], [[pthread_detach(NULL);]])],[ol_cv_func_pthread_detach=yes],[ol_cv_func_pthread_detach=no])
++]], [[pthread_detach((pthread_t)0);]])],[ol_cv_func_pthread_detach=yes],[ol_cv_func_pthread_detach=no])
+ 			])
+ 
+ 			if test $ol_cv_func_pthread_detach = no ; then
